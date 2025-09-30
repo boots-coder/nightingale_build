@@ -19,7 +19,9 @@
 
 本项目包含一个交互式Web界面，用于直观地演示核心的“来源可追溯性”功能。
 
-![Provenance Highlighting Demo](static/img.png)
+![Provenance Highlighting Demo](static/img1.png)
+![Provenance Highlighting Demo](static/img2.png)
+![Provenance Highlighting Demo](static/img3.png)
 
 *(上图演示：在右侧摘要中点击 `[S#]` 锚点后，左侧原文中的对应句子会自动滚动到视图并高亮显示。)*
 
