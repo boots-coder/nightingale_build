@@ -52,21 +52,19 @@ import json # 确保导入了json
 
 @router.post("/consultations/{consultation_id}/process", response_model=schemas.consultation.Consultation)
 def process_consultation_transcript(
-    *,
-    db: Session = Depends(get_db),
-    consultation_id: int,
-    transcript_in: schemas.consultation.TranscriptProcessRequest
+        *,
+        db: Session = Depends(get_db),
+        consultation_id: int,
+        transcript_in: schemas.consultation.TranscriptProcessRequest
 ):
-    """
-    接收转录稿，生成摘要，并将其存入数据库。
-    """
     db_consultation = db.query(models.Consultation).filter(models.Consultation.id == consultation_id).first()
     if not db_consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
 
     db_consultation.raw_transcript = transcript_in.transcript
 
-    summary_data = summarization.generate_summaries_from_text(transcript_in.transcript)
+    # 接收摘要数据和位置地图
+    summary_data, location_map = summarization.generate_summaries_from_text(transcript_in.transcript)
     if not summary_data:
         raise HTTPException(status_code=500, detail="Failed to generate summary from LLM")
 
@@ -76,34 +74,29 @@ def process_consultation_transcript(
     }
 
     for summary_type, content_str in all_summaries_content.items():
-        db_summary = models.Summary(
-            consultation_id=consultation_id,
-            summary_type=summary_type,
-            content=content_str
-        )
+        db_summary = models.Summary(consultation_id=consultation_id, summary_type=summary_type, content=content_str)
         db.add(db_summary)
         db.flush()
 
-        # --- 已修复的溯源解析逻辑 ---
-        # 步骤A: 找到所有完整的 [S...] 块
         citation_blocks = re.findall(r'\[S[^\]]*\]', content_str)
-
-        # 步骤B: 从每个块中提取所有数字
         all_anchor_numbers = []
         for block in citation_blocks:
             numbers = re.findall(r'\d+', block)
             all_anchor_numbers.extend(numbers)
 
-        # 存储解析出的锚点
-        for anchor_num in all_anchor_numbers:
+        for anchor_num_str in all_anchor_numbers:
+            anchor_num = int(anchor_num_str)
+            # 从地图中查找位置
+            source_location = location_map.get(anchor_num, {"start": 0, "end": 0})
+
             db_anchor = models.ProvenanceAnchor(
                 summary_id=db_summary.id,
                 anchor_id=f"S{anchor_num}",
-                source_span_start=0, # 简化处理
-                source_span_end=0    # 简化处理
+                # 使用查找到的真实位置！
+                source_span_start=source_location["start"],
+                source_span_end=source_location["end"]
             )
             db.add(db_anchor)
-        # --- 修复结束 ---
 
     db.commit()
     db.refresh(db_consultation)

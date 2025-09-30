@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nightingale Demo</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Nightingale VoiceAI Demo</h1>
+            <p>A demonstration of automated clinical summarization with provenance grounding.</p>
+        </header>
+
+        <main id="app-root">
+            <div id="input-view">
+                <h2>1. Patient Consultation Transcript</h2>
+                <textarea id="transcript-input" rows="12">
+Doctor, I've been feeling dizzy for the past two weeks. It's worst when I wake up in the morning. My name is John Appleseed and I was born on May 1st, 1985. I also have a throbbing headache sometimes, mainly on the right side. I live at 123 Main Street in New York. I haven't taken any medication for it yet. What should I do next?
+                </textarea>
+                <button id="process-button">Process Consultation</button>
+            </div>
+
+            <div id="content-view"></div>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

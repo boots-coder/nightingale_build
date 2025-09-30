@@ -9,17 +9,52 @@ from openai import OpenAI
 # PyCharm中也可以在运行配置里设置环境变量。
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-def _chunk_transcript(transcript: str) -> list[str]:
-    """一个简单的辅助函数，将文本按句子分割并添加索引。"""
-    # 这里的实现可以更复杂，例如使用NLTK等库，但为了简单起见，我们先用句号分割
-    sentences = transcript.split('.')
-    return [f"[{i}]: {sentence.strip()}." for i, sentence in enumerate(sentences) if sentence.strip()]
+# 在文件顶部添加
+import nltk
 
-def generate_summaries_from_text(transcript: str) -> dict:
+# 首次运行时需要下载NLTK的句子分割模型
+try:
+    nltk.data.find('tokenizers/punkt')
+except nltk.downloader.DownloadError:
+    nltk.download('punkt')
+
+# 在文件顶部，确保有 import nltk
+import nltk
+
+
+def _chunk_transcript(transcript: str) -> tuple[str, dict]:
     """
-    调用LLM从文本生成两种摘要和溯源信息。
+    使用NLTK将文本分割成带精确位置的句子，并生成用于Prompt的文本和位置地图。
+    *** 此为修复版本，强制使用标准的 'punkt' tokenizer ***
     """
-    chunked_transcript = "\n".join(_chunk_transcript(transcript))
+    # 1. 明确加载我们知道存在的标准英文punkt模型
+    try:
+        tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+    except LookupError:
+        print("Standard 'punkt' tokenizer not found. Downloading...")
+        nltk.download('punkt')
+        tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+
+    # 2. 使用加载好的tokenizer来分割句子，并获取它们的span
+    sentence_spans = tokenizer.span_tokenize(transcript)
+
+    prompt_text_lines = []
+    location_map = {}
+
+    for i, span in enumerate(sentence_spans):
+        start_char, end_char = span
+        sentence = transcript[start_char:end_char]
+
+        prompt_text_lines.append(f"[{i}]: {sentence}")
+        location_map[i] = {"start": start_char, "end": end_char}
+
+    return "\n".join(prompt_text_lines), location_map
+def generate_summaries_from_text(transcript: str) -> tuple[dict, dict]:
+    """
+    调用LLM从文本生成两种摘要和溯源信息，并返回位置地图。
+    """
+    # 修改这一行
+    chunked_transcript_for_prompt, location_map = _chunk_transcript(transcript)
 
     prompt = f"""
     You are a highly skilled medical note analyst. Your task is to process a patient-clinician dialogue and generate two distinct summaries based on it.
@@ -31,7 +66,7 @@ def generate_summaries_from_text(transcript: str) -> dict:
     4.  Your final output must be a single, valid JSON object, and nothing else. Do not include any explanatory text before or after the JSON.
 
     **Dialogue with Sentence Indexes:**
-    {chunked_transcript}
+    {chunked_transcript_for_prompt}
 
     **Required JSON Output Format:**
     {{
@@ -63,8 +98,8 @@ def generate_summaries_from_text(transcript: str) -> dict:
 
     try:
         summary_data = json.loads(response.choices[0].message.content)
-        return summary_data
+        # 在函数返回时，同时返回 summary_data 和 location_map
+        return summary_data, location_map
     except (json.JSONDecodeError, IndexError) as e:
         print(f"Error parsing LLM response: {e}")
-        # 在真实应用中，这里需要更健壮的错误处理和重试机制
-        return {}
+        return {}, {}
