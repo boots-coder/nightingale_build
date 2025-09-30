@@ -1,0 +1,21 @@
+This project utilizes the following open-source libraries, models, and services.
+
+Core Python Libraries
+FastAPI: MIT License
+
+Uvicorn: BSD-3-Clause License
+
+SQLAlchemy: MIT License
+
+spaCy: MIT License
+
+Pydantic: MIT License
+
+Pytest: MIT License
+
+AI Models & Services
+OpenAI Python Library: Apache 2.0 License
+
+OpenAI Models (GPT-3.5-Turbo, Whisper): Proprietary, subject to OpenAI's Terms of Use.
+
+spaCy English Model (en_core_web_sm): MIT License
