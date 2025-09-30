@@ -9,6 +9,8 @@ SQLAlchemy: MIT License
 
 spaCy: MIT License
 
+NLTK: Apache 2.0 License
+
 Pydantic: MIT License
 
 Pytest: MIT License
