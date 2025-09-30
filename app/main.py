@@ -1,6 +1,15 @@
 from fastapi import FastAPI
 
-# 创建 FastAPI 应用实例
+from .db import models
+from .db.session import engine
+
+# 这行代码会告诉 SQLAlchemy 根据我们定义的模型，在数据库中创建对应的表。
+# 它只会在表不存在时进行创建，所以重复运行是安全的。
+models.Base.metadata.create_all(bind=engine)
+from .api import endpoints
+
+
+
 app = FastAPI(
     title="Nightingale AI Patient Experience",
     description="A prototype for the 48-hour build challenge.",
@@ -13,3 +22,6 @@ def read_root():
     根路径，用于简单的健康检查。
     """
     return {"message": "Welcome to the Nightingale AI API!"}
+
+# 将 endpoints.py 中定义的所有路由都包含进来
+app.include_router(endpoints.router, prefix="/api/v1")
